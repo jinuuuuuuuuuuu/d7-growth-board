@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { fixLabel } from './format';
 import type { Cluster, ExperimentCard, Game, IndexGame, Meta } from './types';
 
 const BASE = import.meta.env.BASE_URL;
@@ -63,7 +64,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cart, setCartS] = useState<string[]>(() => read('d7.cart', []));
   const [cards, setCards] = useState<ExperimentCard[]>(() => read('d7.cards', []));
   useEffect(() => {
-    Promise.all([load<IndexGame[]>('index.json'), load<Meta>('meta.json')]).then(([index, meta]) => setState({ index, meta })).catch(() => setErr(true));
+    Promise.all([load<IndexGame[]>('index.json'), load<Meta>('meta.json')]).then(([index, meta]) => setState({ index, meta: { ...meta, clusters: meta.clusters.map(c => ({ ...c, label: fixLabel(c.label) })) } })).catch(() => setErr(true));
   }, []);
   const byId = useMemo(() => new Map((state?.index ?? []).map(g => [g.id, g])), [state]);
   const value = useMemo<Ctx | null>(() => {

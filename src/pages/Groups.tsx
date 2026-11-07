@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../lib/data';
-import { GRADE_COLOR, GRADES, money, short } from '../lib/format';
+import { GRADE_COLOR, GRADES, comboName, money, short } from '../lib/format';
 import { Card, Donut, GradeLegend, Page, Select, StatCard, StatsHead, TopBar } from '../components/ui';
 import { GameTable } from '../components/GameTable';
 
@@ -16,8 +16,9 @@ export default function Groups() {
   const [tier, setTier] = useState('');
   const [size, setSize] = useState('');
   const [genre, setGenre] = useState('');
+  const [excl, setExcl] = useState(true);
   const [sort, setSort] = useState<'risk' | 'recover'>('risk');
-  const list = meta.clusters.filter(x => (!combo || x.combo === combo) && (!tier || x.tier === tier) && (!size || x.size === size));
+  const list = meta.clusters.filter(x => (!combo || x.combo === combo) && (!tier || x.tier === tier) && (!size || x.size === size) && (!excl || x.id !== 'Z00'));
   const inC = useMemo(() => index.filter(g => g.cluster_id === c.id), [index, c.id]);
   const genres = useMemo(() => Array.from(new Set(inC.map(g => g.genre))).sort(), [inC]);
   const rows = useMemo(() => [...inC.filter(g => !genre || g.genre === genre)].sort((a, b) => sort === 'risk' ? (b.risk_prob ?? 0) - (a.risk_prob ?? 0) : b.recover_ops - a.recover_ops), [inC, genre, sort]);
@@ -35,9 +36,10 @@ export default function Groups() {
       <TopBar title="게임군" />
       <Card title={`비슷한 게임군 ${list.length}개`}>
         <div className="filters">
-          <Select label="수익 구조" value={combo} onChange={setCombo} options={opts(['광고+인앱결제', '인앱결제', '광고', '없음'])} />
+          <Select label="수익 구조" value={combo} onChange={setCombo} options={[['', '전체'], ...['광고+인앱결제', '인앱결제', '광고', '없음'].map(x => [x, comboName(x)] as [string, string])]} />
           <Select label="퍼블리셔" value={tier} onChange={setTier} options={opts(['AAA', 'Mid-size', 'Indie', 'Unknown'])} />
           <Select label="예산 규모" value={size} onChange={setSize} options={opts(['소형', '중형', '대형', '미상'])} />
+          <button className={'tog' + (excl ? ' on' : '')} aria-pressed={excl} onClick={() => setExcl(!excl)} title="Free·Freemium이면서 광고와 인앱결제가 없어 매출이 0으로 확정된 게임 군집">수익구조 없는 게임 제외</button>
         </div>
         <div className="cl-grid">
           {list.map(x => {

@@ -18,6 +18,9 @@ export function metric(v: number | null | undefined, unit: string) {
   return String(v);
 }
 
+export const comboName = (c: string) => (c === '없음' ? '판매·구독만' : c);
+export const fixLabel = (s: string) => s.replace(/^없음/, '판매·구독만');
+
 export const GRADES: Grade[] = ['A', 'B', 'C', 'D', 'E'];
 /* 등급은 안전과 위험의 양극이라 초록-회색-빨강 발산 구조. 항상 글자와 함께 표시한다 */
 export const GRADE_COLOR: Record<Grade, string> = { A: '#1E9E4A', B: '#8FD19E', C: '#B5B5B0', D: '#F59A92', E: '#E02020' };
