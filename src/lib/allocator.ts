@@ -63,6 +63,8 @@ function candidates(g: LeverGame, s: State, c: AllocConfig) {
   return out;
 }
 
+export const leverOptions = (g: LeverGame, c: AllocConfig) => candidates(g, newState(g), c);
+
 type Entry = [number, number, number, number, number, number]; // [-효율, 게임, 조치, 판, 비용, 증분]
 const less = (a: Entry, b: Entry) => (a[0] !== b[0] ? a[0] < b[0] : a[1] !== b[1] ? a[1] < b[1] : a[2] !== b[2] ? a[2] < b[2] : a[3] < b[3]);
 class Heap {

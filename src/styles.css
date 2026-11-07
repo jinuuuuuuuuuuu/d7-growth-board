@@ -208,6 +208,11 @@ button.gcell:hover { border-color: var(--primary); }
 .lvr-b { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 6px; }
 .lvr-e { font-size: 14px; color: var(--g1); width: 96px; text-align: right; font-variant-numeric: tabular-nums; }
 .hint.top8 { margin-top: 8px; }
+.lvt td { vertical-align: middle; }
+.verdict { display: inline-block; font-size: 13px; line-height: 20px; padding: 1px 8px; border-radius: 4px; white-space: nowrap; background: var(--line); color: var(--g1); }
+.verdict.v0 { background: #E6F0FF; color: #0052C7; font-weight: 600; }
+.verdict.v1 { background: #FFF4E5; color: #8A5A00; }
+.verdict.v2 { background: #FDECEA; color: #B3261E; }
 tr.me td { background: #F2F7FF; font-weight: 500; }
 .eff-top { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .eff-top .field { flex: 0 1 220px; }
@@ -372,6 +377,7 @@ tr.me td { background: #F2F7FF; font-weight: 500; }
   .cmp, .cmp tbody, .cmp tr, .cmp td { display: block; width: 100%; }
   .cmp tr { border-top: 1px solid var(--line); padding: 8px 0; }
   .cmp td { border: 0; padding: 2px 0; text-align: left; }
+  .lvt td[data-l]::before { content: attr(data-l) ' '; color: var(--g2); margin-right: 6px; }
   .gt-scroll { overflow-x: auto; } .gt table { min-width: 640px; }
   .ref-r { flex-direction: column; align-items: flex-start; }
 }

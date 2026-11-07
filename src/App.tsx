@@ -18,7 +18,7 @@ function Side() {
   const n = current ? cards.filter(c => c.game === current).length : cards.length;
   return (
     <nav className="side" aria-label="주 메뉴">
-      <Link className="logo" to="/diagnose" onClick={() => setCurrent(null)} title="처음 화면으로"><b>D7</b><span>성장 처방 보드</span></Link>
+      <Link className="logo" to="/diagnose" onClick={() => setCurrent(null)} title="처음 화면으로"><b>8팀</b><span>성장 처방 보드</span></Link>
       {g && (
         <div className="cur">
           <Link to={'/game/' + g.id}><small>선택한 게임</small><b>{g.id}</b><span>{g.risk_grade && <i style={{ background: GRADE_COLOR[g.risk_grade] }} />}{g.risk_grade ? `${g.risk_grade}${g.n_fix ?? ''} · ` : ''}{g.genre}</span></Link>
