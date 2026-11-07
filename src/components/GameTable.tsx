@@ -14,7 +14,7 @@ export function GameTable({ rows, height = 340 }: { rows: IndexGame[]; height?: 
     <div className="gt">
       <div className="gt-scroll" style={{ maxHeight: height }}>
         <table>
-          <thead><tr><th className="c-no">No.</th><th>게임 ID</th><th>장르와 첫 조치</th><th>위험</th><th className="r">예측 90일 매출</th><th className="r">개선 시 증가</th><th /></tr></thead>
+          <thead><tr><th className="c-no">No.</th><th>게임 ID</th><th>장르와 첫 조치</th><th>위험</th><th className="r">예측 90일 매출</th><th className="r">개선 여지</th><th /></tr></thead>
           <tbody>
             {rows.slice(0, n).map((g, i) => (
               <tr key={g.id}>

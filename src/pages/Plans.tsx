@@ -28,11 +28,11 @@ function Form({ init, isNew }: { init: ExperimentCard; isNew: boolean }) {
   const up = <K extends keyof ExperimentCard>(k: K, v: ExperimentCard[K]) => setC(s => ({ ...s, [k]: v }));
   return (
     <Page stats={<>
-      <StatsHead title={isNew ? '새 실험 카드' : '실험 카드'} sub={c.game} />
+      <StatsHead title={isNew ? '새 개선안' : '개선안'} sub={c.game} />
       <StatCard title="예측 90일 매출" tag="모델" value={money(c.pred)} row={['위험 등급', c.grade]} />
       {c.gain != null && <StatCard title="조치의 예상 증분" tag="시뮬레이션" value={money(c.gain)} note={`${money(c.gainLo)} ~ ${money(c.gainHi)}`} />}
     </>}>
-      <TopBar title={isNew ? '실험 카드 만들기' : '실험 카드 수정'} />
+      <TopBar title={isNew ? '개선안 만들기' : '개선안 수정'} />
       <Card>
         <div className="form">
           <Field label="제목"><input value={c.title} onChange={e => up('title', e.target.value)} /></Field>
@@ -47,9 +47,9 @@ function Form({ init, isNew }: { init: ExperimentCard; isNew: boolean }) {
             <Field label="상태"><select value={c.status} onChange={e => up('status', e.target.value as ExperimentCard['status'])}><option>초안</option><option>진행</option><option>완료</option></select></Field>
           </div>
           <div className="form-b">
-            <button className="btn lg" onClick={() => { saveCard(c); nav('/cards'); }}>저장</button>
+            <button className="btn lg" onClick={() => { saveCard(c); nav('/plans'); }}>저장</button>
             <button className="btn-o" onClick={() => nav(-1)}>취소</button>
-            {!isNew && <button className="link danger" onClick={() => { removeCard(c.id); nav('/cards'); }}>삭제</button>}
+            {!isNew && <button className="link danger" onClick={() => { removeCard(c.id); nav('/plans'); }}>삭제</button>}
           </div>
         </div>
       </Card>
@@ -64,8 +64,8 @@ function NewCard({ gameId, actionKey }: { gameId: string; actionKey: string }) {
   useEffect(() => {
     if (g && meta.templates[actionKey]) setInit(build(g, actionKey, meta.templates[actionKey]));
   }, [g, actionKey, meta]);
-  if (g === null || !meta.templates[actionKey]) return <Page stats={<StatsHead title="실험 카드" sub="" />}><TopBar title="실험 카드" /><Empty to="/cards" cta="목록으로">이 조치의 양식을 찾지 못했습니다.</Empty></Page>;
-  return init ? <Form init={init} isNew /> : <div className="boot">카드를 준비하는 중입니다.</div>;
+  if (g === null || !meta.templates[actionKey]) return <Page stats={<StatsHead title="개선안" sub="" />}><TopBar title="개선안" /><Empty to="/plans" cta="목록으로">이 조치의 양식을 찾지 못했습니다.</Empty></Page>;
+  return init ? <Form init={init} isNew /> : <div className="boot">개선안을 준비하는 중입니다.</div>;
 }
 
 export function CardEditor() {
@@ -73,7 +73,7 @@ export function CardEditor() {
   const { cards } = useApp();
   if (game && action) return <NewCard gameId={game} actionKey={action} />;
   const c = cards.find(x => x.id === id);
-  if (!c) return <Page stats={<StatsHead title="실험 카드" sub="" />}><TopBar title="실험 카드" /><Empty to="/cards" cta="목록으로">카드를 찾지 못했습니다.</Empty></Page>;
+  if (!c) return <Page stats={<StatsHead title="개선안" sub="" />}><TopBar title="개선안" /><Empty to="/plans" cta="목록으로">개선안을 찾지 못했습니다.</Empty></Page>;
   return <Form init={c} isNew={false} />;
 }
 
@@ -82,19 +82,19 @@ export function CardList() {
   const n = (s: string) => cards.filter(c => c.status === s).length;
   return (
     <Page stats={<>
-      <StatsHead title="실험 현황" sub="이 브라우저에 저장됩니다" />
-      <StatCard title="저장한 카드" tag="전체" value={`${cards.length}개`} row={['초안', `${n('초안')}개`]}>
+      <StatsHead title="개선안 현황" sub="이 브라우저에 저장됩니다" />
+      <StatCard title="저장한 개선안" tag="전체" value={`${cards.length}개`} row={['초안', `${n('초안')}개`]}>
         <div className="stat-row"><span>진행</span><span>{n('진행')}개</span></div>
         <div className="stat-row"><span>완료</span><span>{n('완료')}개</span></div>
       </StatCard>
     </>}>
-      <TopBar title="실험 카드" />
-      {cards.length === 0 ? <Card><Empty to="/board" cta="우선순위 보드로">아직 저장한 카드가 없습니다. 게임 상세나 우선순위 보드에서 만들 수 있습니다.</Empty></Card> :
+      <TopBar title="개선안" />
+      {cards.length === 0 ? <Card><Empty to="/efficiency" cta="효율로">아직 저장한 개선안이 없습니다. 효율 화면이나 게임 상세에서 만들 수 있습니다.</Empty></Card> :
         <div className="cards">{cards.map(c => (
           <Card key={c.id} title={c.title} right={<select className="st-sel" aria-label="상태" value={c.status} onChange={e => saveCard({ ...c, status: e.target.value as ExperimentCard['status'] })}><option>초안</option><option>진행</option><option>완료</option></select>}>
             <p className="xc-sub"><Link className="chip" to={'/game/' + c.game}>{c.game.replace('REV4_', '')}</Link> 위험 {c.grade} · 예측 {metric(c.pred, 'USD')}{c.gain != null && ` · 예상 증분 ${money(c.gain)}`}</p>
             <dl className="xc"><dt>대상</dt><dd>{c.target}</dd><dt>가설</dt><dd>{c.hypothesis}</dd><dt>실행안</dt><dd>{c.action}</dd><dt>성공 지표</dt><dd>{c.metric}</dd><dt>관찰 기간</dt><dd>{c.period}</dd></dl>
-            <Link className="btn-o" to={'/cards/' + c.id}>열기</Link>
+            <Link className="btn-o" to={'/plans/' + c.id}>열기</Link>
           </Card>
         ))}</div>}
     </Page>

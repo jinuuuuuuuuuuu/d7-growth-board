@@ -1,3 +1,5 @@
+import type { AllocBase } from './allocator';
+
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface IndexGame {
@@ -10,7 +12,7 @@ export interface IndexGame {
 export interface Action {
   key: string; label: string; lever: string; from_value: number; to_value: number; mult: number;
   gain: number; gain_lo: number; gain_hi: number; extra_cost: number; net: number; feas: number; days: number;
-  exp_net: number; per_day: number; score: number; edge: boolean; roi: number | null; evidence: string; ref_only: boolean;
+  exp_net: number; per_day: number; eff?: number; score: number; edge: boolean; roi: number | null; evidence: string; ref_only: boolean;
 }
 
 export interface Compare {
@@ -64,7 +66,7 @@ export interface PortfolioItem { id: string; role: string; why: string }
 
 export interface Meta {
   evidence: Evidence; templates: Record<string, Template>; portfolio: PortfolioItem[]; clusters: Cluster[];
-  grid: Record<Lever, number[]>; actions: Record<string, string>;
+  grid: Record<Lever, number[]>; actions: Record<string, string>; alloc: Record<'conservative' | 'standard', AllocBase>;
 }
 
 export interface ExperimentCard {

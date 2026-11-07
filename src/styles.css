@@ -114,6 +114,7 @@ a { color: inherit; text-decoration: none; }
 .btn { background: var(--primary); color: #fff; } .btn:hover { background: #0058D6; }
 .btn.sm { padding: 4px 14px; font-size: 14px; }
 .btn.lg { padding: 12px 28px; }
+.btn.wide { width: 100%; margin-top: 4px; }
 .btn-o { border: 1px solid var(--inline); background: #fff; color: var(--g1); padding: 3px 12px; font-size: 14px; }
 .btn-o:hover { border-color: var(--primary); color: var(--primary); }
 .btn-o.on { background: #E6F0FF; border-color: var(--primary); color: var(--primary); }
@@ -161,6 +162,46 @@ a.chip:hover { background: #E6F0FF; color: var(--primary); }
 .lg-inline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; line-height: 16px; color: var(--g2); }
 .lg-inline span { display: inline-flex; align-items: center; gap: 8px; }
 .lg-inline i { width: 10px; height: 10px; border-radius: 50%; }
+
+/* 게임군 지도 */
+.gmap { display: grid; grid-template-columns: 110px repeat(4, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.gmap > b { font-size: 13px; font-weight: 500; color: var(--g2); text-align: center; align-self: center; }
+.gmap > b.rowh { text-align: left; }
+.gcell { border: 1px solid var(--inline); border-radius: 6px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; min-height: 58px; justify-content: center; }
+.gcell.none { background: var(--tagbg); border-color: transparent; }
+button.gcell:hover { border-color: var(--primary); }
+.gcell.on { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+.gcell strong { font-size: 15px; line-height: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gcell small { font-size: 12px; line-height: 16px; color: var(--g1); }
+.gmap + .hint { margin-top: 10px; }
+.sub-h { font-size: 15px; font-weight: 600; margin: 16px 0 10px; }
+
+/* 효율 */
+.eff-top { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.eff-top .field { flex: 0 1 220px; }
+.eff-in { border: 1px solid var(--inline); border-radius: 8px; padding: 8px 12px; font-size: 22px; line-height: 30px; font-weight: 700; width: 100%; font-variant-numeric: tabular-nums; }
+.eff-chips { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 6px; }
+.eff-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; }
+.eff-row .lbl { display: block; font-size: 13px; line-height: 16px; color: var(--g2); margin-bottom: 4px; }
+.eff-row .field.sm { flex: 0 1 130px; }
+.eff-row .field.sm select { padding: 5px 10px; border-radius: 4px; }
+.cost-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 10px 0; }
+.cost-grid input { border: 1px solid var(--inline); border-radius: 4px; padding: 4px 8px; width: 100%; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpis > div { background: var(--g4); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; min-width: 0; }
+.kpis span { font-size: 13px; line-height: 18px; color: var(--g1); }
+.kpis b { font-size: 22px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpis small { font-size: 12px; line-height: 16px; color: var(--g2); }
+.eff-msg { font-size: 15px; line-height: 24px; color: var(--g1); margin-bottom: 6px; }
+.eff-msg b { color: var(--primary); }
+.share { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.share i { flex: 1; height: 8px; background: #EFEFEA; border-radius: 4px; overflow: hidden; }
+.share u { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
+.share.g u { background: var(--g3); }
+.share em { font-style: normal; width: 36px; text-align: right; font-size: 13px; color: var(--g2); }
+.acts-c { line-height: 20px; min-width: 170px; } .acts-c small { display: block; font-size: 12px; line-height: 16px; color: var(--g2); }
+.gp { max-height: 520px; overflow: auto; }
 
 /* 게임군 */
 .cl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 16px; max-height: 300px; overflow-y: auto; padding: 2px; }
@@ -293,6 +334,7 @@ a.chip:hover { background: #E6F0FF; color: var(--primary); }
   .search { width: 100%; }
   .sim { grid-template-columns: 1fr; }
   .form-2 { grid-template-columns: 1fr; }
+  .kpis, .kpis.three { grid-template-columns: 1fr 1fr; }
   .cmp thead { display: none; }
   .cmp, .cmp tbody, .cmp tr, .cmp td { display: block; width: 100%; }
   .cmp tr { border-top: 1px solid var(--line); padding: 8px 0; }
