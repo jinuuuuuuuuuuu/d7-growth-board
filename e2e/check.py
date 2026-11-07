@@ -153,6 +153,8 @@ with sync_playwright() as p:
     pg.get_by_label('충돌 개선 단가').fill(''); pg.wait_for_timeout(100); ok('칸을 비워도 입력 유지', pg.get_by_label('충돌 개선 단가').input_value() == '')
     pg.get_by_label('충돌 개선 단가').fill('100'); pg.wait_for_timeout(300)
     ok('단가를 낮추면 투자로 전환, 예산 자동 조정', '투자' in tb() and pg.get_by_test_id('eff-spent').inner_text() == '$100' and pg.get_by_label('총예산').input_value() == '1', pg.get_by_test_id('eff-spent').inner_text())
+    xs = [float(v) for v in re.findall(r'[ML]([\d.]+) ', pg.locator('svg.curve path').first.get_attribute('d'))]
+    ok('곡선이 왼쪽에서 오른쪽으로', xs == sorted(xs), str(xs[:4]))
     pg.get_by_label('마케팅 조각 사용').check(); pg.get_by_label('마케팅 조각 단가').fill('5000'); pg.get_by_label('광고 추가 (다음 버전) 사용').check(); pg.wait_for_timeout(300)
     ok('후보가 아닌 조치의 이유', '증액 상한 초과' in tb() and '이미 운영 중' in tb())
     pg.screenshot(path=SH + 'eff_table.png', full_page=True)

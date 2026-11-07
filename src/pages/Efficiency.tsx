@@ -46,7 +46,7 @@ export default function Efficiency() {
   const series = useMemo<Series[]>(() => {
     const mk = { ...cfg, enabled: ['marketing'] as Lever[] };
     const m = allocate(games, mk, Infinity);
-    const x0 = Math.min(1000, cfg.marketingStep);
+    const x0 = Math.min(1000, cfg.marketingStep, (full.picks[0]?.spent ?? 1000) / 2, (m.picks[0]?.spent ?? 1000) / 2);
     const out: Series[] = [{ name: '선택한 조치 최적', color: '#006AFF', pts: line(full.picks, x0) }];
     if (m.picks.length) out.push({ name: '마케팅만 최적', color: '#525256', pts: line(m.picks, x0) });
     if (!game && m.picks.length) {
