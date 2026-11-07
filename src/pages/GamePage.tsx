@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useApp, useGame } from '../lib/data';
@@ -80,14 +80,12 @@ function Simulator({ g }: { g: Game }) {
 export default function GamePage() {
   const { id } = useParams();
   const g = useGame(id);
-  const { cart, toggleCart, cluster, meta } = useApp();
+  const { setCurrent, cluster, meta } = useApp();
+  useEffect(() => { if (g) setCurrent(g.id); }, [g?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (g === undefined) return <div className="boot">게임 정보를 불러오는 중입니다.</div>;
   if (g === null) return <Page stats={<StatsHead title="게임 없음" sub={id ?? ''} />}><TopBar title="게임 상세" /><Empty to="/diagnose" cta="게임 진단으로">이 ID의 게임을 찾지 못했습니다.</Empty></Page>;
   const c = cluster(g.cluster_id);
-  const inCart = cart.includes(g.id);
-  const head = <TopBar title={<Link className="back" to={'/diagnose/' + g.cluster_id}><ArrowLeft size={18} />{c?.label}</Link>}>
-    <button className={'btn-o' + (inCart ? ' on' : '')} onClick={() => toggleCart(g.id)} aria-pressed={inCart}>{inCart ? '효율 계획에 담음' : '효율 계획에 담기'}</button>
-  </TopBar>;
+  const head = <TopBar title={<Link className="back" to={'/diagnose/' + g.cluster_id}><ArrowLeft size={18} />{c?.label}</Link>} />;
   const sub = `${g.genre} · ${g.sub_genre} · ${g.model} · ${g.tier} · ${g.region}`;
   if (g.excluded) return (
     <Page stats={<><StatsHead title={g.id} sub={sub} /><StatCard title="예측 90일 매출" tag="모델" value={money(g.pred)} note={`80% 범위 ${money(g.pred_lo80)} ~ ${money(g.pred_hi80)}`} /></>}>

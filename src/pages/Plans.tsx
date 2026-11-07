@@ -78,17 +78,18 @@ export function CardEditor() {
 }
 
 export function CardList() {
-  const { cards, saveCard } = useApp();
+  const { cards: allCards, saveCard, current } = useApp();
+  const cards = current ? allCards.filter(c => c.game === current) : allCards;
   const n = (s: string) => cards.filter(c => c.status === s).length;
   return (
     <Page stats={<>
-      <StatsHead title="개선안 현황" sub="이 브라우저에 저장됩니다" />
+      <StatsHead title="개선안 현황" sub={current ? `${current}의 개선안입니다` : '저장한 모든 개선안입니다'} />
       <StatCard title="저장한 개선안" tag="전체" value={`${cards.length}개`} row={['초안', `${n('초안')}개`]}>
         <div className="stat-row"><span>진행</span><span>{n('진행')}개</span></div>
         <div className="stat-row"><span>완료</span><span>{n('완료')}개</span></div>
       </StatCard>
     </>}>
-      <TopBar title="개선안" />
+      <TopBar title={current ? `개선안 · ${current}` : '개선안'} />
       {cards.length === 0 ? <Card><Empty to="/efficiency" cta="효율로">아직 저장한 개선안이 없습니다. 효율 화면이나 게임 상세에서 만들 수 있습니다.</Empty></Card> :
         <div className="cards">{cards.map(c => (
           <Card key={c.id} title={c.title} right={<select className="st-sel" aria-label="상태" value={c.status} onChange={e => saveCard({ ...c, status: e.target.value as ExperimentCard['status'] })}><option>초안</option><option>진행</option><option>완료</option></select>}>

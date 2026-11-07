@@ -1,129 +1,145 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../lib/data';
-import { GRADE_LEVEL, money, pct } from '../lib/format';
-import { LABEL, allocate, equalMarketing, threshold, type AllocBase, type AllocConfig, type Lever, type LeverGame } from '../lib/allocator';
-import type { Grade } from '../lib/types';
-import { Card, GradeBadge, Page, StatCard, StatsHead, TopBar } from '../components/ui';
-import { InvestCurve } from '../components/InvestCurve';
+import { money, pct, smoney } from '../lib/format';
+import { LABEL, allocate, equalMarketing, threshold, type AllocBase, type AllocConfig, type Lever, type LeverGame, type Pick } from '../lib/allocator';
+import { Card, Empty, Page, StatCard, StatsHead, TopBar } from '../components/ui';
+import { InvestCurve, type Series } from '../components/InvestCurve';
 
-const BUDGETS = [50000, 100000, 200000, 500000];
-const COSTS: [keyof AllocBase['costs'], string][] = [['update', '업데이트 단축'], ['crash', '충돌 개선'], ['apk', '앱 용량 경량화'], ['engage', '참여 개선'], ['ads', '광고 추가'], ['iap', '인앱결제 추가']];
+const ROWS: [Lever, string][] = [['update', '업데이트 단축'], ['crash', '충돌 개선'], ['apk', '앱 용량 경량화'], ['engage', '참여 개선'], ['marketing', '마케팅 조각'], ['ads', '광고 추가 (다음 버전)'], ['iap', '인앱결제 추가 (다음 버전)']];
 const keyOf = (g: LeverGame, l: Lever) => (l === 'marketing' ? 'mkt_15' : l === 'ads' || l === 'iap' ? 'structure' : g.k[l] ?? 'structure');
-const times = (x: number) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '배';
+const line = (picks: Pick[], x0: number) => {
+  const step = Math.max(1, Math.floor(picks.length / 240));
+  return [{ x: x0, y: 0 }, ...picks.filter((_, i) => i % step === 0 || i === picks.length - 1).map(p => ({ x: p.spent, y: p.cumGain }))];
+};
 
 export default function Efficiency() {
-  const { meta, cart, setCart } = useApp();
+  const { meta, current } = useApp();
   const [levers, setLevers] = useState<LeverGame[] | null>(null);
-  const [budget, setBudget] = useState(200000);
-  const [scope, setScope] = useState<'all' | 'cart'>(cart.length >= 3 ? 'cart' : 'all');
+  const [budgetK, setBudgetK] = useState(200);
   const [mode, setMode] = useState<'conservative' | 'standard'>('conservative');
   const [real, setReal] = useState(0.5);
-  const [mkt, setMkt] = useState(false);
-  const [chan, setChan] = useState(false);
-  const [costs, setCosts] = useState(meta.alloc.conservative.costs);
-  const [fee, setFee] = useState(meta.alloc.conservative.fee);
+  const [fee, setFee] = useState(30);
+  const [maxA, setMaxA] = useState<number | null>(null);
+  const [costs, setCosts] = useState<AllocBase['costs']>(meta.alloc.conservative.costs);
+  const [stepC, setStepC] = useState(meta.alloc.conservative.marketingStep);
+  const [on, setOn] = useState<Record<Lever, boolean>>({ update: true, crash: true, apk: true, engage: true, marketing: false, ads: false, iap: false });
   useEffect(() => { fetch(`${import.meta.env.BASE_URL}data/levers.json`).then(r => r.json()).then(setLevers); }, []);
 
+  const game = current ? levers?.find(g => g.id === current) : undefined;
   const cfg = useMemo<AllocConfig>(() => ({
-    ...meta.alloc[mode], costs, fee, realization: real,
-    enabled: ['update', 'crash', 'apk', 'engage', ...(mkt ? ['marketing' as Lever] : []), ...(chan ? ['ads', 'iap'] as Lever[] : [])],
-  }), [meta, mode, costs, fee, real, mkt, chan]);
-  const games = useMemo(() => (levers ?? []).filter(g => (scope === 'all' || cart.includes(g.id)) && (chan || !g.zero)), [levers, scope, cart, chan]);
+    ...meta.alloc[mode], costs, marketingStep: stepC, fee: fee / 100, realization: real, maxActions: maxA,
+    enabled: (Object.keys(on) as Lever[]).filter(k => on[k]),
+  }), [meta, mode, costs, stepC, fee, real, maxA, on]);
+  const games = useMemo(() => (game ? [game] : (levers ?? []).filter(g => on.ads || on.iap || !g.zero)), [game, levers, on.ads, on.iap]);
+  const budget = budgetK * 1000;
   const r = useMemo(() => allocate(games, cfg, budget), [games, cfg, budget]);
   const full = useMemo(() => allocate(games, cfg, Infinity), [games, cfg]);
-  const eq = useMemo(() => equalMarketing(games, cfg, budget), [games, cfg, budget]);
-  const at = (t: number) => { const p = full.picks.filter(x => x.efficiency >= t); return p.length ? p[p.length - 1].spent : 0; };
-  const cap5 = at(5), th = threshold(cfg);
+  const series = useMemo<Series[]>(() => {
+    const mk = { ...cfg, enabled: ['marketing'] as Lever[] };
+    const m = allocate(games, mk, Infinity);
+    const x0 = Math.min(1000, cfg.marketingStep);
+    const out: Series[] = [{ name: '선택한 조치 최적', color: '#006AFF', pts: line(full.picks, x0) }];
+    if (m.picks.length) out.push({ name: '마케팅만 최적', color: '#525256', pts: line(m.picks, x0) });
+    if (!game && m.picks.length) {
+      const top = Math.max(m.spent, full.spent);
+      const pts = Array.from({ length: 36 }, (_, i) => { const v = x0 * (top / x0) ** (i / 35); return { x: v, y: equalMarketing(games, mk, v) }; });
+      out.push({ name: '마케팅만 균등', color: '#A3A3A3', dash: '6 5', pts });
+    }
+    return out;
+  }, [games, cfg, full, game]);
+  // 게임을 고르면 그 게임의 손익분기 예산으로 시작
+  useEffect(() => {
+    if (!levers) return;
+    if (!game) { setBudgetK(200); return; }
+    const c = allocate([game], cfg, Infinity).spent;
+    setBudgetK(Math.max(1, Math.ceil(c / 1000)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, !!levers]);
+
+  const th = threshold(cfg);
+  // 손익분기를 넘는 조치가 없을 때: 단가를 1로 두고 다시 계산해, 효과가 가장 큰 조치와 투자 가능한 단가를 찾는다
+  const best = useMemo(() => {
+    if (!game || full.picks.length) return null;
+    const unit = Object.fromEntries(Object.keys(costs).map(k => [k, 1])) as AllocBase['costs'];
+    const p = allocate([game], { ...cfg, costs: unit, enabled: cfg.enabled.filter(l => l !== 'marketing') }, Infinity).picks[0];
+    return p ? { lever: p.lever, gain: p.gain, cost: Math.floor(p.efficiency / th) } : null;
+  }, [game, full, cfg, costs, th]);
+  const at = (t: number) => full.picks.filter(p => p.efficiency >= t).reduce((b, p) => Math.max(b, p.spent), 0);
+  const pickK = (v: number) => setBudgetK(Math.max(1, Math.round(v / 1000)));
+  const last = r.picks.length ? r.picks[r.picks.length - 1].efficiency : 0;
+  const title = current ?? '전체 게임';
 
   const left = <>
-    <StatsHead title="효율" sub="한정된 예산을 어디에 먼저 쓸지 계산합니다" />
-    <StatCard title="담은 게임" tag={`${cart.length}개`} note="회사 정보가 없어 test 게임으로 구성한 데모입니다.">
-      <div className="stat-btns">
-        <button className="btn" onClick={() => { setCart(meta.portfolio.map(p => p.id)); setScope('cart'); }}>데모 포트폴리오 불러오기</button>
-        {cart.length > 0 && <button className="btn-o" onClick={() => { setCart([]); setScope('all'); }}>모두 비우기</button>}
+    <StatsHead title="효율" sub={game ? `${current}의 매출을 가장 효율적으로 높이는 방법입니다` : '게임을 고르지 않으면 전체 게임에 예산을 나눕니다'} />
+    <StatCard title="총예산" tag="입력">
+      <label className="big-in"><input aria-label="총예산" type="number" min="0" step={game ? 1 : 10} value={budgetK} onChange={e => setBudgetK(Math.max(0, Number(e.target.value) || 0))} /><span>천 달러</span></label>
+      <div className="stat-row"><span>사용</span><span>{money(r.spent)}</span></div>
+      <div className="stat-row"><span>남음</span><span>{money(budget - r.spent)}</span></div>
+    </StatCard>
+    <StatCard title="예산 추천" tag="투자 곡선" value={<span data-testid="eff-cap">{money(full.spent)}</span>} note={`마지막 1달러가 손익분기 $${th.toFixed(2)} 이상을 회수하는 동안 쓸 수 있는 최대 예산입니다.`}>
+      {[10, 5, 3].filter(t => t > th && at(t) > 0).map(t => <div key={t} className="stat-row rec"><span>1달러당 {t} 이상까지</span><span>{money(at(t))}<button className="link" onClick={() => pickK(at(t))}>적용</button></span></div>)}
+      <div className="stat-row rec"><span>손익분기까지</span><span>{money(full.spent)}<button className="link" onClick={() => pickK(full.spent)}>적용</button></span></div>
+    </StatCard>
+    <StatCard title="조치 단가" tag="가정" note="체크한 조치만 계산합니다. 설명용 가정값이니 회사 단가로 바꿔 넣으세요.">
+      <div className="lever-list">{ROWS.map(([k, n]) => (
+        <div key={k} className="lv"><label><input type="checkbox" aria-label={n + ' 사용'} checked={on[k]} onChange={e => setOn({ ...on, [k]: e.target.checked })} /><span>{n}</span></label>
+          <span className="lv-in">$<input aria-label={n + ' 단가'} type="number" min="0" step="500" value={k === 'marketing' ? stepC : costs[k]} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); if (k === 'marketing') setStepC(v); else setCosts({ ...costs, [k]: v }); }} /></span></div>
+      ))}</div>
+    </StatCard>
+    <StatCard title="계산 설정" tag={mode === 'conservative' ? '보수' : '기본'}>
+      <div className="seg full" role="group" aria-label="비용 가정">
+        <button aria-pressed={mode === 'standard'} onClick={() => setMode('standard')}>기본</button>
+        <button aria-pressed={mode === 'conservative'} onClick={() => setMode('conservative')}>보수</button>
       </div>
+      <div className="stat-row set"><span>스토어 수수료</span><span className="lv-in"><input aria-label="수수료" type="number" min="0" max="60" value={fee} onChange={e => setFee(Math.min(60, Math.max(0, Number(e.target.value) || 0)))} />%</span></div>
+      <div className="stat-row set"><span>실현율 (가정)</span><select aria-label="실현율" value={real} onChange={e => setReal(Number(e.target.value))}>{[.25, .5, .75, 1].map(v => <option key={v} value={v}>{pct(v, 0)}</option>)}</select></div>
+      <div className="stat-row set"><span>게임당 조치 상한</span><select aria-label="게임당 조치 상한" value={maxA ?? ''} onChange={e => setMaxA(e.target.value ? Number(e.target.value) : null)}><option value="">제한 없음</option>{[1, 2, 3].map(v => <option key={v} value={v}>{v}개</option>)}</select></div>
+      <p className="stat-note">보수: 운영 조치를 겹쳐도 매출 2배까지만 인정하고, 큰 게임일수록 비용이 크다고 가정합니다 (AAA ×4, Mid-size ×2, Unknown ×1.5).</p>
     </StatCard>
   </>;
-  if (!levers) return <Page stats={left}><TopBar title="효율" /><div className="boot">배분 데이터를 불러오는 중입니다.</div></Page>;
+
+  if (!levers) return <Page stats={<StatsHead title="효율" sub="" />}><TopBar title="효율" /><div className="boot">배분 데이터를 불러오는 중입니다.</div></Page>;
+  if (current && !game) return <Page stats={<StatsHead title="효율" sub={current} />}><TopBar title="효율" /><Card><Empty to="/diagnose" cta="게임 진단으로">이 게임은 효율 계산 대상이 아닙니다.</Empty></Card></Page>;
 
   return (
     <Page stats={left}>
-      <TopBar title="효율" />
-      <Card title="예산과 가정">
-        <div className="eff-top">
-          <label className="field"><span>투입 예산 (달러)</span><input aria-label="투입 예산" className="eff-in" type="number" min="0" step="10000" value={budget} onChange={e => setBudget(Math.max(0, Number(e.target.value) || 0))} /></label>
-          <div className="eff-chips" role="group" aria-label="예산 빠른 선택">{BUDGETS.map(b => <button key={b} className={'btn-o' + (budget === b ? ' on' : '')} onClick={() => setBudget(b)}>{b / 10000}만</button>)}</div>
-        </div>
-        <div className="eff-row">
-          <div><span className="lbl">적용 범위</span><div className="seg" role="group" aria-label="적용 범위">
-            <button aria-pressed={scope === 'all'} onClick={() => setScope('all')}>전체 게임</button>
-            <button aria-pressed={scope === 'cart'} onClick={() => setScope('cart')}>담은 게임 {cart.length}개</button></div></div>
-          <div><span className="lbl">비용 가정</span><div className="seg" role="group" aria-label="비용 가정">
-            <button aria-pressed={mode === 'conservative'} onClick={() => setMode('conservative')} title="큰 게임일수록 비용이 크고, 운영 조치를 겹쳐도 매출 2배까지만 인정">보수적</button>
-            <button aria-pressed={mode === 'standard'} onClick={() => setMode('standard')} title="게임 크기와 관계없이 같은 비용, 운영 조치를 겹쳐 매출 3배까지 인정">표준</button></div></div>
-          <label className="field sm"><span>실현율 (가정)</span><select aria-label="실현율" value={real} onChange={e => setReal(Number(e.target.value))}>{[.25, .5, .75, 1].map(v => <option key={v} value={v}>{pct(v, 0)}</option>)}</select></label>
-          <label className="field sm"><span>플랫폼 수수료 (가정)</span><select aria-label="수수료" value={fee} onChange={e => setFee(Number(e.target.value))}>{[0, .15, .3].map(v => <option key={v} value={v}>{pct(v, 0)}</option>)}</select></label>
-        </div>
-        <div className="filters tog-row">
-          <button className={'tog' + (mkt ? ' on' : '')} aria-pressed={mkt} onClick={() => setMkt(!mkt)} title="첫 주 마케팅비가 다른 게임을 비교한 값이며, D7 이후 추가 집행의 효과는 아닙니다">마케팅 증액 포함 (비교 참고)</button>
-          <button className={'tog' + (chan ? ' on' : '')} aria-pressed={chan} onClick={() => setChan(!chan)} title="설명서 가정상 D7 수익화 설정은 90일 동안 유지됩니다. 켜면 다음 버전 시나리오로 계산합니다">수익 채널 추가 포함 (다음 버전 시나리오)</button>
-        </div>
-        <details className="formula"><summary>조치별 단가 수정 (가정값)</summary>
-          <div className="cost-grid">{COSTS.map(([k, n]) => <label key={k} className="field"><span>{n}</span><input aria-label={n + ' 단가'} type="number" min="0" step="500" value={costs[k]} onChange={e => setCosts({ ...costs, [k]: Math.max(0, Number(e.target.value) || 0) })} /></label>)}</div>
-          <p>단가는 설명용 가정값입니다. 회사 숫자로 바꿔 넣으면 결과가 다시 계산됩니다. 보수적 설정은 단가에 AAA ×4, Mid-size ×2, Unknown ×1.5를 곱합니다.</p>
-        </details>
+      <TopBar title={game ? `효율 · ${title}` : '효율 · 전체 게임'} />
+      <div className="kpis top">
+        <div><span>투입 예산</span><b data-testid="eff-spent">{money(r.spent)}</b><small>입력 {money(budget)}</small></div>
+        <div><span>예상 증분 매출</span><b className="up" data-testid="eff-gain">{smoney(r.gain)}</b><small>실현율 {pct(real, 0)} 반영, 연관 기반 추정</small></div>
+        <div><span>1달러당 회수</span><b data-testid="eff-per">{r.perDollar.toFixed(1)}</b><small>마지막 1달러 {last.toFixed(1)}</small></div>
+        {game ? <div><span>적용 조치</span><b>{r.byLever.length}개</b><small>예측 {money(game.pred)} → {money(game.pred + r.gain)}</small></div>
+          : <div><span>투자 게임</span><b>{r.byGame.length}개</b><small>{r.stop === 'budget' ? '예산 소진' : '손익분기 도달'}</small></div>}
+      </div>
+      {game && full.picks.length === 0 && <p className="banner" data-testid="eff-best">{best
+        ? `현재 단가로는 비용을 회수하는 조치가 없습니다. 효과가 가장 큰 조치는 ${LABEL[best.lever]}(예상 증분 ${smoney(best.gain)})이며, 단가가 ${money(best.cost)} 이하이면 투자할 만합니다.`
+        : '이 게임은 지금 체크한 조치로 개선할 항목이 없습니다. 수익 구조가 없는 게임은 광고·인앱결제 추가를 체크해 보세요.'}</p>}
+      <Card title="얼마를 써야 하나요 · 투자 곡선" right={<div className="lg-inline">{series.map(s => <span key={s.name}><i style={{ background: s.color }} />{s.name}</span>)}</div>}>
+        <p className="hint">예산을 늘릴수록 1달러의 효과가 줄어듭니다. 곡선을 누르면 그 지점의 예산으로 설정됩니다. 가로축은 로그 눈금입니다.</p>
+        <InvestCurve series={series} budget={budget} cap={full.spent} onPick={pickK} />
       </Card>
-
-      <Card title="이 예산을 쓰면">
-        <div className="kpis">
-          <div><span>실제 투입</span><b data-testid="eff-spent">{money(r.spent)}</b><small>조치 {r.picks.length}건 · 게임 {r.byGame.length}개</small></div>
-          <div><span>예상 증분 매출</span><b data-testid="eff-gain">{money(r.gain)}</b><small>실현율 {pct(real, 0)} 반영</small></div>
-          <div><span>수수료·투입 비용 제외</span><b className={r.net >= 0 ? 'up' : 'down'}>{money(r.net)}</b><small>수수료 {pct(fee, 0)} 가정</small></div>
-          <div><span>1달러당 회수</span><b data-testid="eff-per">{money(r.perDollar).replace('$', '$')}</b><small>손익분기 ${th.toFixed(2)}</small></div>
-        </div>
-        {eq > 0 && <p className="eff-msg">같은 예산을 게임별로 똑같이 마케팅에 나누면 증분 {money(eq)}입니다. 효율 순서로 쓰면 <b>{times(r.gain / eq)}</b>입니다.</p>}
-        {r.spent < budget && r.stop !== 'budget' && <p className="eff-msg">손익분기를 넘는 조치가 더 없어서 {money(budget - r.spent)}은 쓰지 않는 것이 낫습니다.</p>}
-        <p className="hint">시뮬레이션 금액은 단가와 실현율 가정에 따라 크게 달라집니다. 금액보다 순서와 배분 비율을 보세요. 매출 상승을 보장하지 않습니다.</p>
+      <Card title={game ? '이 게임에 무엇을 먼저 할까요' : '조치별 배분'} right={<div className="lg-inline"><span><i style={{ background: '#006AFF' }} />예산 비중</span><span><i style={{ background: '#A3A3A3' }} />매출 비중</span></div>}>
+        <p className="hint">예산 비중보다 매출 비중이 큰 조치가 가성비가 좋은 조치입니다.</p>
+        {r.byLever.length === 0 && <p className="body">이 예산으로 고를 수 있는 조치가 없습니다.</p>}
+        <div className="lvs">{r.byLever.map(l => (
+          <div key={l.lever} className="lvr">
+            <div className="lvr-n"><b>{LABEL[l.lever]}</b><small>{l.count}회 · {money(l.cost)}</small></div>
+            <div className="lvr-b">
+              <span className="share"><i><u style={{ width: `${l.costShare * 100}%` }} /></i><em>{pct(l.costShare, 0)}</em></span>
+              <span className="share g"><i><u style={{ width: `${l.gainShare * 100}%` }} /></i><em>{pct(l.gainShare, 0)}</em></span>
+            </div>
+            <div className="lvr-e">1달러당 {(l.gain / l.cost).toFixed(1)}</div>
+            {game && <Link className="btn sm" to={`/plans/new/${game.id}/${keyOf(game, l.lever)}`}>개선안</Link>}
+          </div>
+        ))}</div>
+        {!game && <p className="hint top8">게임 진단에서 게임을 고르면 그 게임 하나의 효율로 바뀌고, 조치별 개선안을 만들 수 있습니다.</p>}
       </Card>
-
-      <Card title="어디에 쓰나요">
-        {r.byLever.length === 0 && <p className="body">이 조건에서 손익분기를 넘는 조치가 없습니다.</p>}
-        <table className="cmp lev">
-          <thead><tr><th>조치</th><th className="r">건수</th><th className="r">투입</th><th>예산 비중</th><th className="r">예상 증분</th><th>증분 비중</th></tr></thead>
-          <tbody>{r.byLever.map(l => <tr key={l.lever}>
-            <td>{LABEL[l.lever]}</td><td className="r num">{l.count}</td><td className="r num">{money(l.cost)}</td>
-            <td><span className="share"><i><u style={{ width: `${l.costShare * 100}%` }} /></i><em>{pct(l.costShare, 0)}</em></span></td>
-            <td className="r num">{money(l.gain)}</td>
-            <td><span className="share g"><i><u style={{ width: `${l.gainShare * 100}%` }} /></i><em>{pct(l.gainShare, 0)}</em></span></td></tr>)}</tbody>
-        </table>
-      </Card>
-
-      <Card title="얼마까지 쓸 만한가요">
-        <div className="kpis three">
-          <div><span>1달러당 $5 이상 유지</span><b>{money(cap5)}</b><small>우선 집행 구간</small></div>
-          <div><span>손익분기까지</span><b data-testid="eff-cap">{money(full.spent)}</b><small>이 이상은 손해로 추정</small></div>
-          <div><span>손익분기까지의 증분</span><b>{money(full.gain)}</b><small>실현율 {pct(real, 0)} 반영</small></div>
-        </div>
-        <InvestCurve picks={full.picks} budget={budget} />
-        <p className="hint">파란 선은 예산을 늘릴 때의 누적 증분 매출입니다. 점선이 지금 입력한 예산입니다. 뒤로 갈수록 기울기가 줄어듭니다.</p>
-      </Card>
-
-      <Card title={`게임별 투자안 ${r.byGame.length}개`}>
-        <div className="tbl-x gp"><table className="bd">
-          <thead><tr><th>게임</th><th>위험</th><th>조치</th><th className="r">투입</th><th className="r">예상 증분</th><th className="r">1달러당</th><th /></tr></thead>
-          <tbody>{r.byGame.slice(0, 40).map(p => {
-            const main = [...p.actions].sort((a, b) => b.gain - a.gain)[0];
-            return <tr key={p.game.id}>
-              <td><Link className="chip" to={'/game/' + p.game.id}>{p.game.id.replace('REV4_', '')}</Link></td>
-              <td>{p.game.grade ? <GradeBadge grade={p.game.grade as Grade} n={p.game.nFix} /> : <span className="dim">수익 구조 없음</span>}</td>
-              <td className="acts-c">{p.actions.map(a => LABEL[a.lever]).join(', ')}{p.game.grade && <small>{GRADE_LEVEL[p.game.grade as Grade]} 위험 · {p.game.genre}</small>}</td>
-              <td className="r num">{money(p.cost)}</td><td className="r num">{money(p.gain)}</td><td className="r num">{money(p.gain / p.cost)}</td>
-              <td><Link className="btn sm" to={`/plans/new/${p.game.id}/${keyOf(p.game, main.lever)}`}>개선안</Link></td></tr>;
-          })}</tbody>
-        </table></div>
-        {r.byGame.length > 40 && <p className="hint">상위 40개만 표시합니다.</p>}
-      </Card>
+      <Card><details className="formula"><summary>계산 방식과 한계</summary>
+        <p>효율은 실현율을 반영한 증분 매출을 비용으로 나눈 값입니다. 효율이 가장 높은 조치부터 고르고, 고른 게임의 다른 조치를 다시 계산합니다. 손익분기 효율은 1 ÷ (1 − 수수료)입니다.</p>
+        <p>매출 배수는 팀 모델 재예측값이고, 마케팅은 퍼블리셔 등급별 탄력성을 씁니다. 단가, 실현율, 수수료는 가정값이므로 금액보다 순서와 배분 비율을 보세요. 비슷한 게임끼리 비교한 추정이며 매출 상승을 보장하지 않습니다.</p>
+        <p>마케팅은 첫 주 집행액이 다른 게임끼리의 비교값이고, 광고·인앱결제 추가는 D7 수익화 설정이 90일 유지된다는 데이터 가정 밖의 시나리오입니다.</p>
+      </details></Card>
     </Page>
   );
 }

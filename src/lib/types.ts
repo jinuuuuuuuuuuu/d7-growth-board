@@ -31,6 +31,7 @@ export interface Game extends IndexGame {
   metrics: { crash: number | null; update: number; session: number; daily: number; engage: number; marketing: number | null; wishlist: number; apk: number; cpi: number | null };
   compare: Compare[]; factors: Factor[]; strengths?: Factor[]; actions: Action[];
   w?: Record<Lever, number[] | null>;
+  past?: (string | number)[][] | null;
 }
 
 export interface ClusterHistory {

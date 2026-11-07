@@ -19,13 +19,13 @@ export interface AllocBase {
   costs: Record<'ads' | 'iap' | 'engage' | 'crash' | 'update' | 'apk', number>;
   marketingStep: number; fee: number; maxOpMult: number; tierCostMult: Record<string, number>; channelCoef: Record<string, number>;
 }
-export interface AllocConfig extends AllocBase { enabled: Lever[]; realization: number }
+export interface AllocConfig extends AllocBase { enabled: Lever[]; realization: number; maxActions: number | null }
 
-interface State { ads: boolean; iap: boolean; engage: boolean; crash: boolean; update: boolean; apk: boolean; S: number | null }
+interface State { ads: boolean; iap: boolean; engage: boolean; crash: boolean; update: boolean; apk: boolean; S: number | null; n: number }
 
 export const threshold = (c: AllocConfig) => 1 / (1 - c.fee);
 const comboOf = (a: boolean, i: boolean) => (a && i ? '광고+인앱결제' : a ? '광고' : i ? '인앱결제' : '없음');
-const newState = (g: LeverGame): State => ({ ads: g.ads, iap: g.iap, engage: false, crash: false, update: false, apk: false, S: g.spend });
+const newState = (g: LeverGame): State => ({ ads: g.ads, iap: g.iap, engage: false, crash: false, update: false, apk: false, S: g.spend, n: 0 });
 
 function revenue(g: LeverGame, s: State, c: AllocConfig): number {
   let level: number;
@@ -44,7 +44,7 @@ function revenue(g: LeverGame, s: State, c: AllocConfig): number {
 }
 
 const leverCost = (g: LeverGame, lev: Lever, c: AllocConfig) => (lev === 'marketing' ? c.marketingStep : (c.tierCostMult[g.tier] ?? 1) * c.costs[lev]);
-const applyLever = (s: State, lev: Lever, c: AllocConfig): State => (lev === 'marketing' ? { ...s, S: (s.S as number) + c.marketingStep } : { ...s, [lev]: true });
+const applyLever = (s: State, lev: Lever, c: AllocConfig): State => (lev === 'marketing' ? { ...s, S: (s.S as number) + c.marketingStep } : { ...s, [lev]: true, n: s.n + 1 });
 
 function candidates(g: LeverGame, s: State, c: AllocConfig) {
   const out: { lev: Lever; cost: number; gain: number }[] = [];
@@ -54,7 +54,7 @@ function candidates(g: LeverGame, s: State, c: AllocConfig) {
     if (lev === 'marketing') {
       if (g.spendCap === null || (s.S as number) + c.marketingStep > g.spendCap + 1e-9) continue;
     } else {
-      if (s[lev]) continue;
+      if (s[lev] || (c.maxActions !== null && s.n >= c.maxActions)) continue;
       if (lev !== 'ads' && lev !== 'iap' && g.m[lev] == null) continue;
     }
     const cost = Math.max(leverCost(g, lev, c), 1);

@@ -16,7 +16,7 @@ const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.st
 
 interface Ctx {
   index: IndexGame[]; byId: Map<string, IndexGame>; meta: Meta; cluster: (id: string) => Cluster | undefined;
-  cart: string[]; toggleCart: (id: string) => void; setCart: (ids: string[]) => void;
+  current: string | null; setCurrent: (id: string | null) => void;
   cards: ExperimentCard[]; saveCard: (c: ExperimentCard) => void; removeCard: (id: string) => void;
 }
 const C = createContext<Ctx | null>(null);
@@ -42,43 +42,26 @@ export function useGame(id: string | undefined) {
   return game;
 }
 
-export function useGames(ids: string[]) {
-  const { byId } = useApp();
-  const [games, setGames] = useState<Game[] | null>(null);
-  const key = ids.join(',');
-  useEffect(() => {
-    let on = true;
-    Promise.all(ids.map(async i => {
-      const row = byId.get(i); if (!row) return null;
-      return (await loadCluster(row.cluster_id)).find(g => g.id === i) ?? null;
-    })).then(l => { if (on) setGames(l.filter(Boolean) as Game[]); });
-    return () => { on = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, byId]);
-  return games;
-}
-
 export function DataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ index: IndexGame[]; meta: Meta } | null>(null);
   const [err, setErr] = useState(false);
-  const [cart, setCartS] = useState<string[]>(() => read('d7.cart', []));
+  const [current, setCur] = useState<string | null>(() => read('d7.current', null));
   const [cards, setCards] = useState<ExperimentCard[]>(() => read('d7.cards', []));
   useEffect(() => {
     Promise.all([load<IndexGame[]>('index.json'), load<Meta>('meta.json')]).then(([index, meta]) => setState({ index, meta: { ...meta, clusters: meta.clusters.map(c => ({ ...c, label: fixLabel(c.label) })) } })).catch(() => setErr(true));
   }, []);
   const byId = useMemo(() => new Map((state?.index ?? []).map(g => [g.id, g])), [state]);
-  const cartOk = useMemo(() => cart.filter(id => !byId.get(id)?.excluded), [cart, byId]);
   const value = useMemo<Ctx | null>(() => {
     if (!state) return null;
-    const setCart = (ids: string[]) => { setCartS(ids); write('d7.cart', ids); };
+    const setCurrent = (id: string | null) => { setCur(id); write('d7.current', id); };
     return {
       ...state, byId, cluster: id => state.meta.clusters.find(c => c.id === id),
-      cart: cartOk, setCart, toggleCart: id => setCart(cartOk.includes(id) ? cartOk.filter(x => x !== id) : [...cartOk, id]),
+      current, setCurrent,
       cards,
       saveCard: c => { const n = [c, ...cards.filter(x => x.id !== c.id)]; setCards(n); write('d7.cards', n); },
       removeCard: id => { const n = cards.filter(x => x.id !== id); setCards(n); write('d7.cards', n); },
     };
-  }, [state, byId, cartOk, cards]);
+  }, [state, byId, current, cards]);
   if (err) return <div className="boot">데이터를 불러오지 못했습니다. 새로고침해 주세요.</div>;
   if (!value) return <div className="boot">게임 2,000개 데이터를 불러오는 중입니다.</div>;
   return <C.Provider value={value}>{children}</C.Provider>;

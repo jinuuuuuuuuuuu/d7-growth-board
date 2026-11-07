@@ -8,7 +8,7 @@ import { GradeBadge } from './ui';
 const STEP = 50;
 
 export function GameTable({ rows, height = 340 }: { rows: IndexGame[]; height?: number }) {
-  const { cart, toggleCart, meta } = useApp();
+  const { meta } = useApp();
   const [n, setN] = useState(STEP);
   return (
     <div className="gt">
@@ -24,10 +24,7 @@ export function GameTable({ rows, height = 340 }: { rows: IndexGame[]; height?: 
                 <td><GradeBadge grade={g.risk_grade} n={g.n_fix} excluded={g.excluded} />{g.risk_prob != null && <small className="prob">미달 확률 {prob(g.risk_prob)}</small>}</td>
                 <td className="r num">{money(g.pred)}</td>
                 <td className="r num">{g.zero || g.excluded ? '—' : money(g.recover_ops)}</td>
-                <td className="c-act">
-                  {!g.excluded && <button className={'btn-o' + (cart.includes(g.id) ? ' on' : '')} onClick={() => toggleCart(g.id)} aria-pressed={cart.includes(g.id)}>{cart.includes(g.id) ? '담음' : '담기'}</button>}
-                  <Link className="btn sm" to={'/game/' + g.id}>상세</Link>
-                </td>
+                <td className="c-act"><Link className="btn sm" to={'/game/' + g.id}>선택</Link></td>
               </tr>
             ))}
           </tbody>
