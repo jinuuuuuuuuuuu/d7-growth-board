@@ -11,7 +11,7 @@ export default function Board() {
   const games = useGames(cart);
   const [over, setOver] = useState<Over>({});
   const [budget, setBudget] = useState(30);
-  const live = useMemo(() => (games ?? []).filter(g => !g.zero), [games]);
+  const live = useMemo(() => (games ?? []).filter(g => !g.zero && !g.excluded), [games]);
   const zeros = (games ?? []).filter(g => g.zero);
   const acts = useMemo(() => live.flatMap(g => g.actions.filter(a => !a.ref_only).map(a => {
     const k = `${g.id}|${a.key}`, feas = over[k]?.feas ?? a.feas, days = over[k]?.days ?? a.days;
@@ -77,7 +77,7 @@ export default function Board() {
           ))}</div>
         </Card>
         {zeros.length > 0 && <Card title="구조 검토 대상"><div className="plan">{zeros.map(g => (
-          <div key={g.id} className="plan-r"><Link className="chip" to={'/game/' + g.id}>{g.id.replace('REV4_', '')}</Link><b>수익 경로 없음</b><span>90일 예측 0, 다음 버전 수익 채널 검토</span><Link className="btn-o" to={`/cards/new/${g.id}/structure`}>실험 카드 만들기</Link></div>
+          <div key={g.id} className="plan-r"><Link className="chip" to={'/game/' + g.id}>{g.id.replace('REV4_', '')}</Link><b>수익 구조 없는 게임</b><span>90일 예측 0, 다음 버전 수익 채널 검토</span><Link className="btn-o" to={`/cards/new/${g.id}/structure`}>실험 카드 만들기</Link></div>
         ))}</div></Card>}
       </>}
     </Page>

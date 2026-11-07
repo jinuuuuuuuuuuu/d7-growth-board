@@ -1,7 +1,7 @@
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface IndexGame {
-  id: string; cluster_id: string; genre: string; sub_genre: string; tier: string; combo: string; size: string;
+  excluded?: string | null; id: string; cluster_id: string; genre: string; sub_genre: string; tier: string; combo: string; size: string;
   zero: boolean; mkt_missing: boolean; pred: number; risk_prob: number | null; risk_grade: Grade | null;
   risk_rank: number | null; n_fix?: number | null; opportunity: string; recover_ops: number; priority: number;
   first_action?: string | null;
@@ -46,7 +46,7 @@ export interface Template { title: string; target: string; hypothesis: string; a
 
 export interface Evidence {
   summary: {
-    n_test: number; n_live: number; n_zero: number; pred_total: number; recover_total: number; recover_pct: number; top10_share: number;
+    n_test: number; n_live: number; n_zero: number; n_excluded: number; pred_total: number; recover_total: number; recover_pct: number; top10_share: number;
     grades: Record<Grade, { n: number; pred: number; recover: number }>;
   };
   model: { name: string; cv_rmsle: number; fresh_split_rmsle: number; public_rmsle: number; public_note: string };

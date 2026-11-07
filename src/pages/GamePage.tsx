@@ -79,10 +79,16 @@ export default function GamePage() {
     <button className={'btn-o' + (inCart ? ' on' : '')} onClick={() => toggleCart(g.id)} aria-pressed={inCart}>{inCart ? '우선순위 보드에 담음' : '우선순위 보드에 담기'}</button>
   </TopBar>;
   const sub = `${g.genre} · ${g.sub_genre} · ${g.model} · ${g.tier} · ${g.region}`;
+  if (g.excluded) return (
+    <Page stats={<><StatsHead title={g.id} sub={sub} /><StatCard title="예측 90일 매출" tag="모델" value={money(g.pred)} note={`80% 범위 ${money(g.pred_lo80)} ~ ${money(g.pred_hi80)}`} /></>}>
+      <TopBar title={<Link className="back" to="/groups/M00"><ArrowLeft size={18} />{c?.label}</Link>} />
+      <Card title="마케팅 결측 게임"><p className="body">첫 주 마케팅비가 비어 있는 게임입니다. 예측 오차가 약 1.7배로 커서 비슷한 게임군 비교, 위험 등급, 조정 시뮬레이션을 제공하지 않습니다. 모델이 예측한 90일 매출만 참고용으로 보여줍니다.</p></Card>
+    </Page>
+  );
   if (g.zero) return (
-    <Page stats={<><StatsHead title={g.id} sub={sub} /><StatCard title="예측 90일 매출" tag="규칙" value={money(0)} note="수익 경로가 없어 매출이 0으로 확정됩니다." /></>}>
+    <Page stats={<><StatsHead title={g.id} sub={sub} /><StatCard title="예측 90일 매출" tag="규칙" value={money(0)} note="수익 구조가 없어 매출이 0으로 확정됩니다." /></>}>
       {head}
-      <Card title="수익 경로 없음"><p className="body">Free·Freemium이면서 광고와 인앱결제가 모두 없는 게임입니다. 위험 등급을 매기지 않습니다. 설명서 가정상 D7 수익화 설정은 90일 동안 유지되므로 수익 채널 추가 효과를 90일 예측에 더하지 않고, 다음 버전 구조 검토 대상으로만 둡니다.</p>
+      <Card title="수익 구조 없는 게임"><p className="body">Free·Freemium이면서 광고와 인앱결제가 모두 없는 게임입니다. 위험 등급을 매기지 않습니다. 설명서 가정상 D7 수익화 설정은 90일 동안 유지되므로 수익 채널 추가 효과를 90일 예측에 더하지 않고, 다음 버전 구조 검토 대상으로만 둡니다.</p>
         <Link className="btn" to={`/cards/new/${g.id}/structure`}>구조 검토 실험 카드 만들기</Link></Card>
     </Page>
   );
@@ -100,7 +106,7 @@ export default function GamePage() {
         <div className="stat-row"><span>고칠 신호</span><span>{sigs.length ? sigs.join(', ') : '없음'}</span></div>
         <div className="stat-row"><span>군집 안 위치</span><span>{pct(g.peer_pct)}</span></div>
       </StatCard>
-      <StatCard title="회복 가능 매출" tag={`기회 ${g.opportunity}`} value={money(g.recover_ops)} delta={g.recover_ops > 0 ? '+' + pct(g.recover_ops_pct) : undefined} deltaTone="up" note="충돌률 3% 이하, 업데이트 35일 이내 가정" row={['처방 라벨', QUAD[g.quadrant ?? ''] ?? '판정 불가']} />
+      <StatCard title="개선 시 증가 매출" tag={`기회 ${g.opportunity}`} value={money(g.recover_ops)} delta={g.recover_ops > 0 ? '+' + pct(g.recover_ops_pct) : undefined} deltaTone="up" note="충돌률 3% 이하, 업데이트 35일 이내 가정" row={['처방 라벨', QUAD[g.quadrant ?? ''] ?? '판정 불가']} />
     </>}>
       {head}
       {g.mkt_missing && <p className="banner">마케팅비 결측 게임으로 예측 오차가 약 1.7배입니다.</p>}

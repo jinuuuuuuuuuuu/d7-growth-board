@@ -1,5 +1,5 @@
 import { HashRouter, NavLink, Navigate, Route, Routes } from 'react-router-dom';
-import { BookOpenText, FlaskConical, History, Layers, LayoutGrid, ListOrdered } from 'lucide-react';
+import { FlaskConical, History, Layers, LayoutGrid, ListOrdered } from 'lucide-react';
 import { DataProvider, useApp } from './lib/data';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
@@ -17,7 +17,6 @@ const TOP = [
 ];
 const REPORT = [
   { to: '/history', label: '과거 성과 분석', icon: History },
-  { to: '/method', label: '방법과 한계', icon: BookOpenText },
 ];
 
 function Item({ to, label, icon: I, end, badge }: { to: string; label: string; icon: typeof History; end?: boolean; badge?: number }) {

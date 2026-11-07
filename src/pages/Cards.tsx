@@ -15,7 +15,7 @@ function build(g: Game, key: string, t: Template): ExperimentCard {
   return {
     id: 'c' + Date.now(), game: g.id, actionKey: key, title: fill(t.title, g, a), target: fill(t.target, g, a), hypothesis: fill(t.hypothesis, g, a), action: fill(t.action, g, a),
     metric: fill(t.metric, g, a), period: fill(t.period, g, a), design: fill(t.design, g, a), owner: '', status: '초안', createdAt: new Date().toISOString(),
-    pred: g.pred, grade: g.risk_grade ? `${g.risk_grade}${g.n_fix ?? ''}` : '수익 경로 없음', gain: a?.gain ?? null, gainLo: a?.gain_lo ?? null, gainHi: a?.gain_hi ?? null,
+    pred: g.pred, grade: g.risk_grade ? `${g.risk_grade}${g.n_fix ?? ''}` : '수익 구조 없는 게임', gain: a?.gain ?? null, gainLo: a?.gain_lo ?? null, gainHi: a?.gain_hi ?? null,
   };
 }
 

@@ -11,7 +11,7 @@ export function Page({ stats, children }: { stats: ReactNode; children: ReactNod
       <aside className="stats">{stats}</aside>
       <div className="main">
         {children}
-        <p className="legal">합성 데이터 기반 시제품입니다. 실제 시장 통계가 아닙니다.</p>
+        <p className="legal">합성 데이터 기반 시제품입니다. 실제 시장 통계가 아닙니다. 화면 구성 참고: Mahmud Saeef, Car Rental Company Dashboard UI (Figma Community).</p>
       </div>
     </div>
   );
@@ -75,8 +75,8 @@ export function TopBar({ title, children }: { title: ReactNode; children?: React
   );
 }
 
-export function GradeBadge({ grade, n }: { grade: Grade | null | undefined; n?: number | null }) {
-  if (!grade) return <span className="grade none"><i />수익 경로 없음</span>;
+export function GradeBadge({ grade, n, excluded }: { grade: Grade | null | undefined; n?: number | null; excluded?: string | null }) {
+  if (!grade) return <span className="grade none"><i />{excluded ? '마케팅 결측' : '수익 구조 없는 게임'}</span>;
   return <span className="grade"><i style={{ background: GRADE_COLOR[grade] }} /><b>{grade}{n ?? ''}</b><span>{GRADE_LEVEL[grade]}</span></span>;
 }
 

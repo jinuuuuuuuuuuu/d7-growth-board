@@ -10,7 +10,7 @@ export default function Method() {
       <StatsHead title="모델" sub="사전 과제 팀 최종 모델" />
       <StatCard title="CV RMSLE" tag="기대 성능" value={m.cv_rmsle.toFixed(4)} note={m.name} row={['처음 보는 분할', m.fresh_split_rmsle.toFixed(4)]} />
       <StatCard title="Public RMSLE" tag="참고" value={m.public_rmsle.toFixed(4)} note={m.public_note} />
-      <StatCard title="회복 가능 매출" tag="시뮬레이션" value={money(e.summary.recover_total)} note={`예측 합계의 ${pct(e.summary.recover_pct)}, 상위 10% 게임 비중 ${pct(e.summary.top10_share)}`} />
+      <StatCard title="개선 시 증가 매출" tag="시뮬레이션" value={money(e.summary.recover_total)} note={`예측 합계의 ${pct(e.summary.recover_pct)}, 상위 10% 게임 비중 ${pct(e.summary.top10_share)}`} />
     </>}>
       <TopBar title="방법과 한계" />
       <Card title="위험 등급과 검증">

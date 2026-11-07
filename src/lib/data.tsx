@@ -67,17 +67,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     Promise.all([load<IndexGame[]>('index.json'), load<Meta>('meta.json')]).then(([index, meta]) => setState({ index, meta: { ...meta, clusters: meta.clusters.map(c => ({ ...c, label: fixLabel(c.label) })) } })).catch(() => setErr(true));
   }, []);
   const byId = useMemo(() => new Map((state?.index ?? []).map(g => [g.id, g])), [state]);
+  const cartOk = useMemo(() => cart.filter(id => !byId.get(id)?.excluded), [cart, byId]);
   const value = useMemo<Ctx | null>(() => {
     if (!state) return null;
     const setCart = (ids: string[]) => { setCartS(ids); write('d7.cart', ids); };
     return {
       ...state, byId, cluster: id => state.meta.clusters.find(c => c.id === id),
-      cart, setCart, toggleCart: id => setCart(cart.includes(id) ? cart.filter(x => x !== id) : [...cart, id]),
+      cart: cartOk, setCart, toggleCart: id => setCart(cartOk.includes(id) ? cartOk.filter(x => x !== id) : [...cartOk, id]),
       cards,
       saveCard: c => { const n = [c, ...cards.filter(x => x.id !== c.id)]; setCards(n); write('d7.cards', n); },
       removeCard: id => { const n = cards.filter(x => x.id !== id); setCards(n); write('d7.cards', n); },
     };
-  }, [state, byId, cart, cards]);
+  }, [state, byId, cartOk, cards]);
   if (err) return <div className="boot">데이터를 불러오지 못했습니다. 새로고침해 주세요.</div>;
   if (!value) return <div className="boot">게임 2,000개 데이터를 불러오는 중입니다.</div>;
   return <C.Provider value={value}>{children}</C.Provider>;
